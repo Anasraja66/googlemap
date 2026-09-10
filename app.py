@@ -56,8 +56,15 @@ def generate_whatsapp_link(phone):
         # It's a landline (01, 02, 03, 08 etc.)
         return "Landline (Call Only)"
 
-# API KEY
-GOOGLE_API_KEY = "AIzaSyAMp3p3mHQugLZVFF3csFoP2JnOo75iRgE"
+# Fetch API KEY securely from Streamlit Secrets
+try:
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+except FileNotFoundError:
+    st.error("Secrets file not found. Please setup .streamlit/secrets.toml locally.")
+    st.stop()
+except KeyError:
+    st.error("API Key not found! Please set GOOGLE_API_KEY in Streamlit Secrets.")
+    st.stop()
 
 # Lists for Dropdowns
 INDUSTRIES = [
