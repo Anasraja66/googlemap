@@ -360,10 +360,11 @@ if 'search_results' in st.session_state:
     # Export to CSV feature
     csv = df_filtered.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download Data as CSV/Excel",
+        label="📥 Download Data (CSV Format for Excel)",
         data=csv,
         file_name=file_name,
         mime='text/csv',
+        key='download_csv_button'
     )
 
     st.markdown("---")
