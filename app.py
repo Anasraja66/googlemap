@@ -144,6 +144,7 @@ INDUSTRIES = [
 ]
 
 UK_CITIES = [
+    "All UK (Entire Country)",
     "Aberdeen", "Armagh", "Bangor", "Bath", "Belfast", "Birmingham", "Bradford", 
     "Brighton & Hove", "Bristol", "Cambridge", "Canterbury", "Cardiff", "Carlisle", 
     "Chelmsford", "Chester", "Chichester", "Colchester", "Coventry", "Derby", "Derry", 
@@ -211,7 +212,12 @@ if search_button:
     status_text = st.empty()
     
     status_text.text("Connecting to Google Maps API...")
-    raw_query = f"{industry} in {location}, UK"
+    
+    if location == "All UK (Entire Country)":
+        raw_query = f"{industry} in United Kingdom"
+    else:
+        raw_query = f"{industry} in {location}, UK"
+        
     safe_query = urllib.parse.quote(raw_query)
     search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={safe_query}&key={GOOGLE_API_KEY}"
     
