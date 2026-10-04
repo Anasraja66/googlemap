@@ -3,10 +3,79 @@ import pandas as pd
 import time
 import requests
 import urllib.parse
+from fpdf import FPDF
+
 import re
 
 # Set page config for a better UI
 st.set_page_config(page_title="Anas Technology Lead Gen Tool", page_icon="🏢", layout="wide")
+
+
+def generate_pdf_proposal(company_name, pitch_type, location):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="Digital Transformation & Growth Proposal", ln=True, align='C')
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(200, 10, txt=f"Prepared exclusively for: {company_name}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Location: {location}", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", '', 12)
+    if "ERP" in pitch_type or "Enterprise" in pitch_type:
+        content = f"""Dear Director of {company_name},
+
+We noticed your exceptional operational scale in {location}. Businesses operating at your capacity often lose up to 30% of their net revenue to fragmented data systems, manual inventory tracking, and inefficient staff scheduling.
+
+At Anas Technology UK, we specialize in building bespoke Enterprise Resource Planning (ERP) systems and Omnichannel CRMs. 
+
+How {company_name} will benefit:
+1. Complete Automation: Centralize your logistics, HR, and sales data into one real-time dashboard.
+2. AI-Powered Insights: Predict demand and automate redundant administrative tasks.
+3. Bottom-Line Growth: Reduce operational overhead by eliminating manual data entry.
+
+We would like to invite your executive team to a brief technical discovery call to explore how our enterprise solutions align with your growth objectives.
+
+Best regards,
+Anas Technology UK (anastechnology.co.uk)
+"""
+    elif "SEO" in pitch_type or "Social Media" in pitch_type:
+        content = f"""Dear Team at {company_name},
+
+We recently conducted a digital presence audit for businesses in {location} and analyzed your current online footprint. While you have a great local reputation, your search engine rankings (SEO) are currently allowing competitors to capture leads that should be yours.
+
+At Anas Technology UK, we specialize in advanced Search Engine Optimization and Social Media Marketing.
+
+Our Strategy for {company_name}:
+1. Dominate Google Maps: Ensure you are the #1 result when locals search for your services.
+2. Conversion Optimization: Turn your existing website traffic into paying customers.
+3. Social Proof: Build a strong social media presence that builds trust automatically.
+
+Let's connect for a brief 10-minute call to review your free digital audit report.
+
+Best regards,
+Anas Technology UK (anastechnology.co.uk)
+"""
+    else:
+        content = f"""Dear Owner of {company_name},
+
+We see that your business is operating in {location}, but we noticed you currently lack a professional, high-converting website. In today's digital-first world, your website is your 24/7 digital storefront.
+
+At Anas Technology UK, we build lightning-fast, premium websites designed to generate leads and phone calls automatically.
+
+Why {company_name} needs this:
+1. Immediate Trust: Customers research online before buying. A premium website builds instant credibility.
+2. Lead Generation: Capture customer inquiries even when you are closed.
+3. Beat the Competition: Don't let competitors take your digital share.
+
+We would love to show you a quick mockup of what your new digital storefront could look like. 
+
+Best regards,
+Anas Technology UK (anastechnology.co.uk)
+"""
+    pdf.multi_cell(0, 10, txt=content)
+    return pdf.output(dest='S').encode('latin-1')
+
 
 def extract_email_from_website(url):
     if not url or url == "Not Found":
@@ -372,6 +441,24 @@ if app_mode == "??? Google Maps Area Scanner":
             key='download_csv_button'
         )
 
+        st.markdown("---")
+        st.header("?? Generate Custom PDF Proposal")
+        company_names_maps = df_filtered["Name"].tolist()
+        if company_names_maps:
+            selected_company_maps = st.selectbox("Select Company for Proposal:", company_names_maps, key="maps_sel")
+            maps_row = df_filtered[df_filtered["Name"] == selected_company_maps].iloc[0]
+            maps_pitch = maps_row.get("Pitch", "Website Development")
+            
+            pdf_bytes = generate_pdf_proposal(selected_company_maps, maps_pitch, location)
+            st.download_button(
+                label=f"?? Download {maps_pitch} Proposal for {selected_company_maps}",
+                data=pdf_bytes,
+                file_name=f"Proposal_{selected_company_maps}.pdf".replace(" ", "_"),
+                mime="application/pdf",
+                key="maps_pdf_btn"
+            )
+
+
 elif app_mode == "?? Daily New Business Radar":
     with st.sidebar:
         st.header("?? Radar Settings")
@@ -461,6 +548,26 @@ elif app_mode == "?? Daily New Business Radar":
                         mime='text/csv',
                         key='download_ch_csv'
                     )
+
+                    st.markdown("---")
+                    st.header("?? Generate Custom PDF Proposal")
+                    company_names_radar = df_ch["Company Name"].tolist()
+                    if company_names_radar:
+                        selected_company_radar = st.selectbox("Select Company for Proposal:", company_names_radar, key="radar_sel")
+                        radar_row = df_ch[df_ch["Company Name"] == selected_company_radar].iloc[0]
+                        # For newly registered businesses, we assume they need a website first
+                        radar_pitch = "Website Development" 
+                        radar_loc = radar_row.get("City / Postal", "UK")
+                        
+                        pdf_bytes_r = generate_pdf_proposal(selected_company_radar, radar_pitch, radar_loc)
+                        st.download_button(
+                            label=f"?? Download Proposal for {selected_company_radar}",
+                            data=pdf_bytes_r,
+                            file_name=f"Proposal_{selected_company_radar}.pdf".replace(" ", "_"),
+                            mime="application/pdf",
+                            key="radar_pdf_btn"
+                        )
+
             else:
                 st.error(f"Companies House API Error {response.status_code}: {response.text}")
         except Exception as e:
