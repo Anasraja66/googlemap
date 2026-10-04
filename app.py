@@ -105,6 +105,32 @@ def extract_email_from_website(url):
         
     return "Not Found on Website"
 
+
+def get_industry_from_sic(sic_codes):
+    if not sic_codes:
+        return "Unknown Industry"
+    
+    # Take the first SIC code
+    code_str = sic_codes[0]
+    try:
+        code = int(code_str)
+        if 1000 <= code <= 3999: return "Manufacturing"
+        if 4100 <= code <= 4399: return "Construction & Trades"
+        if 4500 <= code <= 4799: return "Retail & E-commerce"
+        if 4900 <= code <= 5399: return "Transport & Logistics"
+        if 5500 <= code <= 5699: return "Hospitality & Restaurants"
+        if 5800 <= code <= 6399: return "IT, Software & Media"
+        if 6400 <= code <= 6699: return "Financial Services"
+        if 6800 <= code <= 6899: return "Real Estate & Property"
+        if 6900 <= code <= 7599: return "Professional, Science & Legal"
+        if 8500 <= code <= 8599: return "Education"
+        if 8600 <= code <= 8899: return "Healthcare & Social Work"
+        if 9000 <= code <= 9399: return "Arts, Entertainment & Fitness"
+        if 9400 <= code <= 9699: return "Other Services (Hair, Beauty, etc.)"
+        return "General Business"
+    except:
+        return "General Business"
+
 def generate_whatsapp_link(phone):
     if phone == "Not Found" or not phone:
         return "No Number"
@@ -500,23 +526,47 @@ elif app_mode == "?? Daily New Business Radar":
                         progress_bar.progress(int((idx / total) * 100))
                         
                         c_name = company.get("company_name", "").title()
+                        c_num = company.get("company_number", "")
                         c_date = company.get("date_of_creation", "")
+                        sic_list = company.get("sic_codes", [])
+                        
+                        industry_name = get_industry_from_sic(sic_list)
                         
                         address_dict = company.get("registered_office_address", {})
                         locality = address_dict.get("locality", "Unknown")
                         postal_code = address_dict.get("postal_code", "")
                         address = f"{locality}, {postal_code}"
                         
-                        status_text.text(f"Processing: {c_name}...")
+                        status_text.text(f"Fetching Director details for: {c_name}...")
+                        
+                        owner_name = "Not Found"
+                        if c_num:
+                            try:
+                                off_url = f"https://api.company-information.service.gov.uk/company/{c_num}/officers"
+                                off_res = requests.get(off_url, auth=(CH_API_KEY, ''), timeout=5)
+                                if off_res.status_code == 200:
+                                    off_data = off_res.json().get("items", [])
+                                    if off_data:
+                                        # Get first director's name and reformat from "LASTNAME, Firstname" to "Firstname Lastname"
+                                        raw_name = off_data[0].get("name", "Unknown")
+                                        if "," in raw_name:
+                                            parts = raw_name.split(",")
+                                            owner_name = f"{parts[1].strip()} {parts[0].strip()}".title()
+                                        else:
+                                            owner_name = raw_name.title()
+                            except:
+                                pass
                         
                         # Generate Smart Links
                         safe_name = urllib.parse.quote(c_name)
                         google_search = f"https://www.google.com/search?q={safe_name}+{locality}+UK"
-                        linkedin_search = f"https://www.linkedin.com/search/results/companies/?keywords={safe_name}"
+                        linkedin_search = f"https://www.linkedin.com/search/results/people/?keywords={urllib.parse.quote(owner_name)}+{safe_name}"
                         fb_search = f"https://www.facebook.com/search/pages/?q={safe_name}"
                         
                         all_ch_data.append({
                             "Company Name": c_name,
+                            "Industry": industry_name,
+                            "Director / Owner": owner_name,
                             "Date Created": c_date,
                             "City / Postal": address,
                             "Google Search": google_search,
