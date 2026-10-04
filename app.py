@@ -523,11 +523,11 @@ elif app_mode == " Daily New Business Radar":
       from_date = today - timedelta(days=7)
       
     
-        sic_param = RADAR_INDUSTRIES[radar_niche]
-        if sic_param:
-            url = f"https://api.company-information.service.gov.uk/advanced-search/companies?incorporated_from={from_date}&incorporated_to={today}&sic_codes={sic_param}&size={fetch_limit}"
-        else:
-            url = f"https://api.company-information.service.gov.uk/advanced-search/companies?incorporated_from={from_date}&incorporated_to={today}&size={fetch_limit}"
+    sic_param = RADAR_INDUSTRIES[radar_niche]
+    if sic_param:
+        url = f"https://api.company-information.service.gov.uk/advanced-search/companies?incorporated_from={from_date}&incorporated_to={today}&sic_codes={sic_param}&size={fetch_limit}"
+    else:
+        url = f"https://api.company-information.service.gov.uk/advanced-search/companies?incorporated_from={from_date}&incorporated_to={today}&size={fetch_limit}"
 
     
     try:
