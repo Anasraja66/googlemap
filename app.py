@@ -170,308 +170,298 @@ UK_CITIES = [
 ]
 
 # Main Title
-st.title("🚀 Anas Technology - Lead Generation Tool")
+import datetime
+from datetime import timedelta
+
+st.title("?? Anas Technology - Lead Generation Tool")
 st.markdown("Search UK businesses, filter by size, and pitch appropriate IT/Tech solutions.")
 
-# Sidebar for inputs
+try:
+    CH_API_KEY = st.secrets.get("CH_API_KEY", "")
+except Exception:
+    CH_API_KEY = ""
+
+# Sidebar Mode Selection
 with st.sidebar:
-    st.header("🎯 Target Settings")
-    industry = st.selectbox("Select Industry (Niche):", sorted(INDUSTRIES))
-    location = st.selectbox("Select UK City/Area:", sorted(UK_CITIES))
-    
+    st.header("?? Select Mode")
+    app_mode = st.radio("Choose Tool:", ["??? Google Maps Area Scanner", "?? Daily New Business Radar"])
     st.markdown("---")
-    st.header("📊 Filter Leads")
-    
-    target_pitch = st.radio(
-        "Target Pitch / Lead Type:",
-        [
-            "All Leads", 
-            "Needs Website (No Website Found)", 
-            "Needs SEO & Social Media (Small/Medium with Website)", 
-            "Enterprise Grade (Large Businesses for ERP/AI)"
-        ]
-    )
-    
-    st.markdown("### Data Columns to Fetch")
-    col1, col2 = st.columns(2)
-    with col1:
-        fetch_phone = st.checkbox("Phone", value=True)
-        fetch_email = st.checkbox("Email", value=True)
-        fetch_map_link = st.checkbox("Google Maps Link", value=True)
-    with col2:
-        fetch_website = st.checkbox("Website URL", value=True)
-        fetch_socials = st.checkbox("Social Media", value=True)
-    
-    search_button = st.button("🔍 Search Real-Time Data", use_container_width=True)
 
-# Main area for results
-if search_button:
-    st.info(f"Fetching real-time data for **{industry}** in **{location}** via Google Maps API... Please wait.")
-    
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    status_text.text("Connecting to Google Maps API...")
-    
-    if location == "All UK (Entire Country)":
-        raw_query = f"{industry} in United Kingdom"
-    else:
-        raw_query = f"{industry} in {location}, UK"
+if app_mode == "??? Google Maps Area Scanner":
+    with st.sidebar:
+        st.header("?? Target Settings")
+        industry = st.selectbox("Select Industry (Niche):", sorted(INDUSTRIES))
+        location = st.selectbox("Select UK City/Area:", sorted(UK_CITIES))
         
-    safe_query = urllib.parse.quote(raw_query)
-    search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={safe_query}&key={GOOGLE_API_KEY}"
-    
-    try:
-        response_data = requests.get(search_url).json()
-        api_status = response_data.get("status")
+        st.markdown("---")
+        st.header("?? Filter Leads")
         
-        if api_status != "OK" and api_status != "ZERO_RESULTS":
-            error_msg = response_data.get("error_message", "Unknown API error")
-            st.error(f"Google API Error ({api_status}): {error_msg}")
-            st.info("Pehle yeh 'Dummy Data' par chal raha tha. Asli API lagane ke baad Google apko error de raha hai. Yeh error Google Cloud Console se API ko theek karne se solve hoga.")
-            results = []
+        target_pitch = st.radio(
+            "Target Pitch / Lead Type:",
+            [
+                "All Leads", 
+                "Needs Website (No Website Found)", 
+                "Needs SEO & Social Media (Small/Medium with Website)", 
+                "Enterprise Grade (Large Businesses for ERP/AI)"
+            ]
+        )
+        
+        st.markdown("### Data Columns to Fetch")
+        col1, col2 = st.columns(2)
+        with col1:
+            fetch_phone = st.checkbox("Phone", value=True)
+            fetch_email = st.checkbox("Email", value=True)
+            fetch_map_link = st.checkbox("Google Maps Link", value=True)
+        with col2:
+            fetch_website = st.checkbox("Website URL", value=True)
+            fetch_socials = st.checkbox("Social Media", value=True)
+        
+        search_button = st.button("?? Search Real-Time Data", use_container_width=True)
+
+    if search_button:
+        st.info(f"Fetching real-time data for **{industry}** in **{location}** via Google Maps API... Please wait.")
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.text("Connecting to Google Maps API...")
+        
+        if location == "All UK (Entire Country)":
+            raw_query = f"{industry} in United Kingdom"
         else:
-            results = response_data.get("results", [])
-        
-        all_data = []
-        total_places = min(len(results), 20) # We process up to 20 results per search to avoid massive API costs
-        
-        if total_places == 0 and api_status == "OK":
-            st.error("No businesses found for this location and industry.")
-        elif total_places == 0 and api_status == "ZERO_RESULTS":
-             st.warning("Google Maps returned 0 results for this specific search. Try a different city or a broader industry.")
-        elif total_places > 0:
-            for idx, place in enumerate(results[:total_places]):
-                progress_bar.progress(int((idx / total_places) * 100))
-                status_text.text(f"Extracting details for: {place.get('name')}...")
-                
-                place_id = place.get("place_id")
-                name = place.get("name")
-                reviews_count = place.get("user_ratings_total", 0)
-                
-                # Determine Size (Enterprise vs Small based on reviews count)
-                if reviews_count >= 100:
-                    size = "Enterprise"
-                else:
-                    size = "Small"
-                
-                # Fetch deeper details (Phone, Website, Link)
-                details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website,url&key={GOOGLE_API_KEY}"
-                det_resp = requests.get(details_url).json().get("result", {})
-                
-                phone = det_resp.get("formatted_phone_number", "Not Found")
-                website = det_resp.get("website", "Not Found")
-                map_link = det_resp.get("url", f"https://maps.google.com/?q={name.replace(' ', '+')}")
-                
-                # Determine Pitch based on real data
-                if website == "Not Found":
-                    pitch = "Website Development"
-                elif size == "Enterprise":
-                    pitch = "Custom ERP, Omnichannel CRM, AI"
-                else:
-                    pitch = "SEO & Social Media Marketing"
-
-                # Filter Logic based on selected Target Pitch
-                if "Needs Website" in target_pitch and website != "Not Found":
-                    continue
-                if "SEO & Social Media" in target_pitch and (website == "Not Found" or size == "Enterprise"):
-                    continue
-                if "Enterprise Grade" in target_pitch and size != "Enterprise":
-                    continue
-                
-                # Generate Smart Social Media Search Links
-                safe_name = urllib.parse.quote(name)
-                linkedin_link = f"https://www.linkedin.com/search/results/companies/?keywords={safe_name}"
-                facebook_link = f"https://www.facebook.com/search/pages/?q={safe_name}"
-                
-                # Fetch Email (if they have a website)
-                if website != "Not Found":
-                    status_text.text(f"Scanning {website} for email addresses...")
-                    email_address = extract_email_from_website(website)
-                else:
-                    email_address = "No Website"
-                
-                # WhatsApp Logic
-                whatsapp_link = generate_whatsapp_link(phone)
-                
-                all_data.append({
-                    "Name": name,
-                    "Phone (Call)": phone,
-                    "WhatsApp": whatsapp_link,
-                    "Email": email_address,
-                    "Website": website,
-                    "LinkedIn": linkedin_link,
-                    "Facebook": facebook_link,
-                    "Size": size,
-                    "Pitch": pitch,
-                    "Map Link": map_link
-                })
-                
-            progress_bar.progress(100)
-            status_text.text("Data fetching complete!")
+            raw_query = f"{industry} in {location}, UK"
             
-            df = pd.DataFrame(all_data)
+        safe_query = urllib.parse.quote(raw_query)
+        search_url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={safe_query}&key={GOOGLE_API_KEY}"
+        
+        try:
+            response_data = requests.get(search_url).json()
+            api_status = response_data.get("status")
             
-            if len(df) > 0:
-                # Prepare columns to show
-                columns_to_show = ["Name"]
-                if fetch_phone: 
-                    columns_to_show.append("Phone (Call)")
-                    columns_to_show.append("WhatsApp")
-                if fetch_email: columns_to_show.append("Email")
-                if fetch_website: columns_to_show.append("Website")
-                if fetch_socials: 
-                    columns_to_show.append("LinkedIn")
-                    columns_to_show.append("Facebook")
-                if fetch_map_link: columns_to_show.append("Map Link")
-                
-                columns_to_show.append("Size")
-                columns_to_show.append("Pitch")
-                
-                df_filtered = df[columns_to_show]
-                
-                # Save to session state
-                safe_industry = industry.replace('&', 'and')
-                st.session_state['search_results'] = df_filtered
-                
-                # Make safe target pitch string for filename
-                safe_target = target_pitch.split('(')[0].strip().replace(' ', '_').replace('&', 'and')
-                st.session_state['file_name'] = f"{safe_industry}_{location}_{safe_target}_leads.csv"
+            if api_status != "OK" and api_status != "ZERO_RESULTS":
+                error_msg = response_data.get("error_message", "Unknown API error")
+                st.error(f"Google API Error ({api_status}): {error_msg}")
+                results = []
             else:
-                st.warning("No companies matched your specific filter criteria in this area.")
+                results = response_data.get("results", [])
+            
+            all_data = []
+            total_places = min(len(results), 20)
+            
+            if total_places == 0 and api_status == "OK":
+                st.error("No businesses found for this location and industry.")
+            elif total_places == 0 and api_status == "ZERO_RESULTS":
+                 st.warning("Google Maps returned 0 results for this specific search. Try a different city or a broader industry.")
+            elif total_places > 0:
+                for idx, place in enumerate(results[:total_places]):
+                    progress_bar.progress(int((idx / total_places) * 100))
+                    status_text.text(f"Extracting details for: {place.get('name')}...")
+                    
+                    place_id = place.get("place_id")
+                    name = place.get("name")
+                    reviews_count = place.get("user_ratings_total", 0)
+                    
+                    if reviews_count >= 100:
+                        size = "Enterprise"
+                    else:
+                        size = "Small"
+                    
+                    details_url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_phone_number,website,url&key={GOOGLE_API_KEY}"
+                    det_resp = requests.get(details_url).json().get("result", {})
+                    
+                    phone = det_resp.get("formatted_phone_number", "Not Found")
+                    website = det_resp.get("website", "Not Found")
+                    map_link = det_resp.get("url", f"https://maps.google.com/?q={name.replace(' ', '+')}")
+                    
+                    if website == "Not Found":
+                        pitch = "Website Development"
+                    elif size == "Enterprise":
+                        pitch = "Custom ERP, Omnichannel CRM, AI"
+                    else:
+                        pitch = "SEO & Social Media Marketing"
+
+                    if "Needs Website" in target_pitch and website != "Not Found":
+                        continue
+                    if "SEO & Social Media" in target_pitch and (website == "Not Found" or size == "Enterprise"):
+                        continue
+                    if "Enterprise Grade" in target_pitch and size != "Enterprise":
+                        continue
+                    
+                    safe_name = urllib.parse.quote(name)
+                    linkedin_link = f"https://www.linkedin.com/search/results/companies/?keywords={safe_name}"
+                    facebook_link = f"https://www.facebook.com/search/pages/?q={safe_name}"
+                    
+                    if website != "Not Found":
+                        status_text.text(f"Scanning {website} for email addresses...")
+                        email_address = extract_email_from_website(website)
+                    else:
+                        email_address = "No Website"
+                    
+                    whatsapp_link = generate_whatsapp_link(phone)
+                    
+                    all_data.append({
+                        "Name": name,
+                        "Phone (Call)": phone,
+                        "WhatsApp": whatsapp_link,
+                        "Email": email_address,
+                        "Website": website,
+                        "LinkedIn": linkedin_link,
+                        "Facebook": facebook_link,
+                        "Size": size,
+                        "Pitch": pitch,
+                        "Map Link": map_link
+                    })
+                    
+                progress_bar.progress(100)
+                status_text.text("Data fetching complete!")
                 
-    except Exception as e:
-        st.error(f"Error fetching data from Google Maps API: {e}")
+                df = pd.DataFrame(all_data)
+                
+                if len(df) > 0:
+                    columns_to_show = ["Name"]
+                    if fetch_phone: 
+                        columns_to_show.append("Phone (Call)")
+                        columns_to_show.append("WhatsApp")
+                    if fetch_email: columns_to_show.append("Email")
+                    if fetch_website: columns_to_show.append("Website")
+                    if fetch_socials: 
+                        columns_to_show.append("LinkedIn")
+                        columns_to_show.append("Facebook")
+                    if fetch_map_link: columns_to_show.append("Map Link")
+                    
+                    columns_to_show.append("Size")
+                    columns_to_show.append("Pitch")
+                    
+                    df_filtered = df[columns_to_show]
+                    
+                    safe_industry = industry.replace('&', 'and')
+                    st.session_state['search_results'] = df_filtered
+                    
+                    safe_target = target_pitch.split('(')[0].strip().replace(' ', '_').replace('&', 'and')
+                    st.session_state['file_name'] = f"{safe_industry}_{location}_{safe_target}_leads.csv"
+                else:
+                    st.warning("No companies matched your specific filter criteria in this area.")
+                    
+        except Exception as e:
+            st.error(f"Error fetching data from Google Maps API: {e}")
 
-# Show data and download button if we have results in session state
-if 'search_results' in st.session_state:
-    df_filtered = st.session_state['search_results']
-    file_name = st.session_state['file_name']
-    
-    st.success(f"Found {len(df_filtered)} real businesses from Google Maps matching your criteria!")
-    
-    # Display dataframe
-    st.dataframe(
-        df_filtered, 
-        use_container_width=True,
-        column_config={
-            "Map Link": st.column_config.LinkColumn("Google Maps Link"),
-            "LinkedIn": st.column_config.LinkColumn("LinkedIn Search"),
-            "Facebook": st.column_config.LinkColumn("Facebook Search"),
-            "Website": st.column_config.LinkColumn("Website"),
-            "WhatsApp": st.column_config.LinkColumn("WhatsApp Link")
-        }
-    )
-    
-    # Export to CSV feature
-    csv = df_filtered.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Data (CSV Format for Excel)",
-        data=csv,
-        file_name=file_name,
-        mime='text/csv',
-        key='download_csv_button'
-    )
+    if 'search_results' in st.session_state:
+        df_filtered = st.session_state['search_results']
+        file_name = st.session_state['file_name']
+        
+        st.success(f"Found {len(df_filtered)} real businesses from Google Maps matching your criteria!")
+        
+        st.dataframe(
+            df_filtered, 
+            use_container_width=True,
+            column_config={
+                "Map Link": st.column_config.LinkColumn("Google Maps Link"),
+                "LinkedIn": st.column_config.LinkColumn("LinkedIn Search"),
+                "Facebook": st.column_config.LinkColumn("Facebook Search"),
+                "Website": st.column_config.LinkColumn("Website"),
+                "WhatsApp": st.column_config.LinkColumn("WhatsApp Link")
+            }
+        )
+        
+        csv = df_filtered.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="?? Download Data (CSV Format for Excel)",
+            data=csv,
+            file_name=file_name,
+            mime='text/csv',
+            key='download_csv_button'
+        )
 
-    st.markdown("---")
-    st.header("💬 Smart Communication Scripts")
-    st.markdown("Select a company to generate tailored Email, Phone, and WhatsApp scripts.")
+elif app_mode == "?? Daily New Business Radar":
+    with st.sidebar:
+        st.header("?? Radar Settings")
+        date_option = st.selectbox("Registered Date:", ["Yesterday (Brand New)", "Last 7 Days"])
+        fetch_limit = st.slider("Companies to fetch (Max 50):", 5, 50, 20)
+        search_radar_btn = st.button("?? Scan UK Companies House", use_container_width=True)
+        
+    st.info("This mode pulls officially registered UK companies straight from the government registry (Companies House). It automatically generates smart search links so your BD can instantly find their LinkedIn, Facebook, or Website.")
     
-    # Create a list of company names from the filtered dataframe
-    company_names = df_filtered["Name"].tolist()
-    
-    if company_names:
-        selected_company = st.selectbox("Select Company:", company_names)
-        
-        # Get the row for the selected company
-        company_data = df_filtered[df_filtered["Name"] == selected_company].iloc[0]
-        
-        pitch = company_data.get("Pitch", "")
-        size = company_data.get("Size", "Small")
-        
-        # --- Logic for Content Generation ---
-        
-        # Email Logic
-        email_subject = ""
-        email_body = ""
-        
-        # Phone Logic
-        phone_script = ""
-        
-        # WhatsApp Logic
-        whatsapp_message = ""
-        
-        if "Website" in pitch:
-            email_subject = f"Digital Growth Opportunity for {selected_company}"
-            email_body = f"Hi Team at {selected_company},\n\nHope you are having a great day.\n\nWhile searching for top services in {location}, I came across your business profile. You have a great reputation locally, but I noticed that you currently don't have a professional website.\n\nIn today's digital age, many potential customers in {location} are searching online, and without a website, they might be going to your competitors.\n\nAt Anas Technology UK, we specialize in building highly converting, professional websites for businesses like yours. A website will act as your 24/7 digital storefront, bringing in more direct calls and customers.\n\nWould you be open to a quick 5-minute chat this week to see how we can help {selected_company} grow?\n\nBest regards,\nBusiness Development Team\nAnas Technology UK\nhttps://anastechnology.co.uk"
+    if search_radar_btn:
+        if not CH_API_KEY:
+            st.error("Companies House API Key is missing! Please add it to Streamlit Secrets.")
+            st.stop()
             
-            phone_script = f"""[Introduction]
-"Hi, is this the owner or manager at {selected_company}? 
-My name is [Your Name], calling from Anas Technology UK."
-
-[The Hook / Problem]
-"I'll be very brief. I was searching for services in {location} today and your business came up. You have a great local reputation, but I noticed you don't have a live website right now."
-
-[The Value / Solution]
-"A lot of customers are searching online right now, and without a website, they are likely going straight to your competitors. We help local businesses like yours build professional, affordable websites that actually generate calls and leads."
-
-[Call to Action]
-"Would you have 5 minutes this week to discuss how we can get {selected_company} set up online and bring in more customers?"""
-
-            whatsapp_message = f"Hi {selected_company} team! 👋 This is [Your Name] from Anas Technology UK. I noticed you do great work in {location}, but you don't have a website yet. We help local businesses build professional websites to get more direct customers. Are you open to a quick chat about getting your business online? 🚀"
-
-        elif "SEO" in pitch or "Social Media" in pitch:
-            email_subject = f"Unlocking more local customers for {selected_company}"
-            email_body = f"Hi Team at {selected_company},\n\nI was impressed by the services you offer across {location}.\n\nHowever, during a quick digital audit, I noticed that your online visibility (SEO/Social Media) isn't reflecting the true quality of your business. Your competitors are currently taking up the top spots on Google Maps and search results.\n\nAt Anas Technology UK, we help businesses like {selected_company} dominate local search and social media, ensuring that when customers look for your services, they find YOU first.\n\nCan we schedule a brief call next Tuesday to share a few free tips on how you can improve your digital presence?\n\nBest regards,\nBusiness Development Team\nAnas Technology UK\nhttps://anastechnology.co.uk"
-            
-            phone_script = f"""[Introduction]
-"Hi, is this the decision maker at {selected_company}? 
-My name is [Your Name], calling from Anas Technology UK."
-
-[The Hook / Problem]
-"I was looking at your online profile in {location}. You guys do great work, but I noticed you're not showing up at the top of Google searches, and your social media could be doing a lot more for you."
-
-[The Value / Solution]
-"Right now, when people search, they are finding your competitors first. We specialize in Local SEO and Social Media Marketing. We can push {selected_company} to the top of Google Maps so you get those phone calls instead of the other guys."
-
-[Call to Action]
-"I'd love to share a couple of free tips on how you can fix this. Do you have 5 minutes tomorrow for a quick chat?"""
-
-            whatsapp_message = f"Hi {selected_company} team! 🌟 [Your Name] here from Anas Technology UK. I was checking out your business in {location}. You have great potential, but you're missing out on customers because competitors are ranking higher on Google Maps. We can help you fix your SEO and dominate local searches. Can we schedule a quick 5-min call? 📈"
-
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        status_text.text("Connecting to UK Companies House API...")
+        
+        today = datetime.date.today()
+        if date_option == "Yesterday (Brand New)":
+            from_date = today - timedelta(days=1)
         else:
-            email_subject = f"Enterprise Tech Solutions & Automation for {selected_company}"
-            email_body = f"Hi Team at {selected_company},\n\nAs a leading player in {location}, scaling your operations efficiently must be a top priority.\n\nI am reaching out from Anas Technology UK, an enterprise-grade consultancy. We help established companies like yours reduce operational bottlenecks, improve data flow, and automate redundant tasks.\n\nBased on your scale, we believe our Custom ERP, AI automation, and Omnichannel CRM solutions could significantly streamline your processes and increase your bottom-line revenue.\n\nI would love to arrange a brief introductory call with our technical director to discuss how our custom software solutions align with {selected_company}'s growth goals for this year.\n\nAre you available for a brief meeting next week?\n\nBest regards,\nBusiness Development Team\nAnas Technology UK\nhttps://anastechnology.co.uk"
+            from_date = today - timedelta(days=7)
             
-            phone_script = f"""[Introduction - Ask for Specific Role]
-"Hi, could you please connect me with the Operations Director or IT Manager? ... 
-Hi, my name is [Your Name] from Anas Technology UK. We are an enterprise software consultancy."
-
-[The Hook / Problem]
-"I'm calling because we work with growing companies in {location} to help them automate their daily operations. I see {selected_company} has been expanding."
-
-[The Value / Solution]
-"When companies reach your size, using basic software or multiple disconnected systems causes bottlenecks. We build Custom ERPs, Omnichannel CRMs, and AI tools that centralize your data, save hundreds of admin hours, and increase revenue."
-
-[Call to Action]
-"I’m not looking to sell you anything today, but I’d love to set up a 10-minute discovery call with our Technical Director to see if our tech solutions align with your growth plans. How does next Tuesday look for you?"""
-
-            whatsapp_message = f"Hello {selected_company} Management, this is [Your Name] from Anas Technology UK. We are an enterprise consultancy helping companies automate operations and scale faster using Custom ERPs and AI solutions. I'd love to arrange a brief call to discuss how our tech can streamline your operations in {location}. Let me know a good time to connect. 🤝"
-
-        # --- UI Display using Tabs ---
-        tab1, tab2, tab3 = st.tabs(["📧 Email", "📞 Phone Script", "📱 WhatsApp"])
+        url = f"https://api.company-information.service.gov.uk/advanced-search/companies?incorporated_from={from_date}&incorporated_to={today}&size={fetch_limit}"
         
-        with tab1:
-            st.text_input("Email Subject:", value=email_subject)
-            st.text_area("Email Body (Copy this):", value=email_body, height=300)
-            
-        with tab2:
-            st.info("💡 Tip: Read this naturally, don't sound like a robot. Pause and wait for their answers.")
-            st.text_area("Live Calling Script:", value=phone_script, height=350)
-            
-        with tab3:
-            st.success("💡 Tip: WhatsApp messages should be short and friendly. Use emojis!")
-            st.text_area("WhatsApp Message:", value=whatsapp_message, height=150)
-        
-    else:
-        st.warning("No companies found to generate scripts for.")
+        try:
+            response = requests.get(url, auth=(CH_API_KEY, ''))
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                
+                if not items:
+                    st.warning("No new companies found for this date range.")
+                else:
+                    all_ch_data = []
+                    total = len(items)
+                    for idx, company in enumerate(items):
+                        progress_bar.progress(int((idx / total) * 100))
+                        
+                        c_name = company.get("company_name", "").title()
+                        c_date = company.get("date_of_creation", "")
+                        
+                        address_dict = company.get("registered_office_address", {})
+                        locality = address_dict.get("locality", "Unknown")
+                        postal_code = address_dict.get("postal_code", "")
+                        address = f"{locality}, {postal_code}"
+                        
+                        status_text.text(f"Processing: {c_name}...")
+                        
+                        # Generate Smart Links
+                        safe_name = urllib.parse.quote(c_name)
+                        google_search = f"https://www.google.com/search?q={safe_name}+{locality}+UK"
+                        linkedin_search = f"https://www.linkedin.com/search/results/companies/?keywords={safe_name}"
+                        fb_search = f"https://www.facebook.com/search/pages/?q={safe_name}"
+                        
+                        all_ch_data.append({
+                            "Company Name": c_name,
+                            "Date Created": c_date,
+                            "City / Postal": address,
+                            "Google Search": google_search,
+                            "LinkedIn Search": linkedin_search,
+                            "Facebook Search": fb_search
+                        })
+                        
+                    progress_bar.progress(100)
+                    status_text.text("Companies House data fetching complete!")
+                    
+                    df_ch = pd.DataFrame(all_ch_data)
+                    st.success(f"Found {len(df_ch)} newly registered businesses in the UK!")
+                    
+                    st.dataframe(
+                        df_ch,
+                        use_container_width=True,
+                        column_config={
+                            "Google Search": st.column_config.LinkColumn("Find Website/Phone"),
+                            "LinkedIn Search": st.column_config.LinkColumn("Find Founder on LinkedIn"),
+                            "Facebook Search": st.column_config.LinkColumn("Find Facebook Page")
+                        }
+                    )
+                    
+                    csv = df_ch.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="?? Download Data (CSV Format for Excel)",
+                        data=csv,
+                        file_name=f"New_UK_Businesses_{today}.csv",
+                        mime='text/csv',
+                        key='download_ch_csv'
+                    )
+            else:
+                st.error(f"Companies House API Error {response.status_code}: {response.text}")
+        except Exception as e:
+            st.error(f"Failed to fetch data from Companies House: {e}")
