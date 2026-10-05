@@ -500,10 +500,11 @@ if app_mode == "? Google Maps Area Scanner":
 
 elif app_mode == " Daily New Business Radar":
   with st.sidebar:
-    st.header(" Radar Settings")
+    st.header("Radar Settings")
+    radar_niche = st.selectbox("Target Industry:", list(RADAR_INDUSTRIES.keys()))
     date_option = st.selectbox("Registered Date:", ["Yesterday (Brand New)", "Last 7 Days"])
     fetch_limit = st.slider("Companies to fetch (Max 50):", 5, 50, 20)
-    search_radar_btn = st.button(" Scan UK Companies House", use_container_width=True)
+    search_radar_btn = st.button("Scan UK Companies House", use_container_width=True)
     
   st.info("This mode pulls officially registered UK companies straight from the government registry (Companies House). It automatically generates smart search links so your BD can instantly find their LinkedIn, Facebook, or Website.")
   
