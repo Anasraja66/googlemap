@@ -399,13 +399,19 @@ if app_mode == "? Google Maps Area Scanner":
           linkedin_link = f"https://www.linkedin.com/search/results/companies/?keywords={safe_name}"
           facebook_link = f"https://www.facebook.com/search/pages/?q={safe_name}"
           
+          web_mobile = None
           if website != "Not Found":
-            status_text.text(f"Scanning {website} for email addresses...")
-            email_address = extract_email_from_website(website)
+            status_text.text(f"Scanning {website} for contact details...")
+            email_address, web_mobile = extract_contacts_from_website(website)
           else:
             email_address = "No Website"
           
-          whatsapp_link = generate_whatsapp_link(phone)
+          whatsapp_link = "No Number"
+          if web_mobile:
+             whatsapp_link = generate_whatsapp_link(web_mobile)
+             
+          if whatsapp_link in ["No Number", "Landline (Call Only)"]:
+             whatsapp_link = generate_whatsapp_link(phone)
           
           all_data.append({
             "Name": name,
